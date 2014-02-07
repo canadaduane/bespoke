@@ -1,19 +1,20 @@
 require 'csv'
 require 'docile'
 require 'mustache'
+require 'logger'
 
 class Bespoke
   class Error < StandardError; end
   MissingTable = Class.new(Error)
-  MissingJoin = Class.new(Error)
 
   class Exportable
     attr_accessor :name, :fields, :joins
 
-    def initialize(name)
+    def initialize(name, logger=nil)
       @name = name.to_sym
       @fields = {}
       @joins = {}
+      @logger = logger || Logger.new(STDERR)
     end
 
     def headers
@@ -37,7 +38,7 @@ class Bespoke
             if other_table.has_key?(row[key])
               context[join_name.to_sym] = other_table[row[key]]
             else
-              raise MissingJoin, "Expected foreign key #{key} with value #{row[key]} in table #{join_name}"
+              @logger.warn "Expected foreign key #{key} with value #{row[key]} in table #{join_name} (#{row.inspect})"
             end
           else
             raise MissingTable, "Expected #{join_name}"

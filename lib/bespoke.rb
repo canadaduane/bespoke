@@ -5,7 +5,7 @@ require "bespoke/exportable"
 class Bespoke
   attr_reader :collection, :exports
 
-  def initialize(hash)
+  def initialize(hash, logger=nil)
     @collection = IndexedCollection.new
     hash["index"].each_pair do |name, column|
       @collection.index name, column
@@ -15,7 +15,7 @@ class Bespoke
       outputs = @exports[output_name] = []
       exportable_configs.each do |config|
         config.each_pair do |collection_name, attrs|
-          outputs << (export = Exportable.new(collection_name))
+          outputs << (export = Exportable.new(collection_name, logger))
           (attrs["fields"] || {}).each_pair do |field, template|
             export.field field, template
           end

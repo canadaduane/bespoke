@@ -14,11 +14,37 @@ class Bespoke
       @name = name.to_sym
       @fields = {}
       @joins = {}
+      @helpers = {}
       @logger = logger || Logger.new(STDERR)
+    end
+
+    class HelperClass
+      def initialize(helpers, context)
+        @helpers, @context = helpers, context
+      end
+
+      def has_key?(key)
+        @helpers.has_key?(key) ||
+        @context.has_key?(key)
+      end
+
+      def [](key)
+        if @helpers.has_key?(key)
+          @helpers[key].call(@context)
+        elsif @context.has_key?(key)
+          @context[key]
+        else
+          super(key)
+        end
+      end
     end
 
     def headers
       @fields.keys
+    end
+
+    def helper(name, &block)
+      @helpers[name] = block
     end
 
     def field(name, template_string)
@@ -33,6 +59,7 @@ class Bespoke
       raise "hashes missing #{@name.inspect} (of: #{hashes.keys.inspect})" unless hashes.has_key?(@name)
       hashes[@name].map do |main_key, row|
         context = { @name => row }
+        context[:helper] = HelperClass.new(@helpers, context)
         @joins.each_pair do |join_name, key|
           if other_table = hashes[join_name.to_sym]
             if other_table.has_key?(row[key])
